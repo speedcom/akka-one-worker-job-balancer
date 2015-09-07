@@ -11,13 +11,13 @@ There are some situations where we can't produce more workers because of differe
 
 ## Facts:
 1. We have only two actors in our system:
-- master: responsible for queueing jobs and is further propagation to worker
-- worker: responsible for processing passed job
-2. Master Actor is supervisor of Worker Actor.
-3. Its done in work-pulling manner (worker asks master for job).
-4. Thanks to job delegation to Worker we get rid of well-known 'Error Kernel Pattern'.
+  1. master: responsible for queueing jobs and its further propagation to worker
+  2. worker: responsible for processing passed job
+* Master Actor is supervisor of Worker Actor.
+* Its done in work-pulling manner (worker asks master for job).
+* Thanks to delegation of job to Worker we get rid of well-known 'Error Kernel Pattern'.
 
 ### Caveats of current solution (what should be done better):
 1. Worker blocks current Thread while processing log-running task (Future to the rescue).
-2. Asking for jobs should be an idempotent operation (messages can be lost).
-3. Own implementation of Supervisor's hierarchy (?)
+- Asking for jobs should be an idempotent operation (messages can be lost).
+- Own implementation of Supervisor's hierarchy (?)
