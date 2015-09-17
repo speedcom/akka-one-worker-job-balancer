@@ -12,7 +12,7 @@ class WorkerActor extends Actor with ActorLogging {
       processedLongRunningJob(job)
       sender ! MasterActor.GimmeJob
     case NewJob(job) if busy == true  =>
-      log.warning("Sth goes wrong as hell...") // this shouldn't never happens
+      log.warning("Sth goes wrong as hell...") // this should never happens
     case NoJobActually                 =>
       log.info("Ok, but do not forget about me!")
       sender ! MasterActor.Ack

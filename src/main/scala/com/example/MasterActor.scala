@@ -6,38 +6,30 @@ import scala.collection.immutable.{Queue, Range}
 class MasterActor extends Actor with ActorLogging {
   import MasterActor._
 
-  var queue = Queue.empty[Job]
   var worker = context.actorOf(WorkerActor.props, WorkerActor.name)
 
-  var acks = 0
+  def receive = freeWorkerReceive(Queue.empty[Job])
 
-  def receive = {
+  def freeWorkerReceive(jobs: Queue[Job]): Receive = {
     case NewJob(job) =>
       log.info(s"master got new job with id ${job.id} while worker IS NOT busy")
-      context.become(beasyWorkerReceive)
+      context.become(beasyWorkerReceive(jobs))
       worker ! WorkerActor.NewJob(job)
-    case Ack if acks == 0 =>
-      acks = 1
-      JobProducer.produceJobs(ids = (6 to 10)).foreach {
-        job =>
-          log.info(s"generated job with id ${job.id}")
-          self ! MasterActor.NewJob(job)
-      }
     case Ack =>
       log.info(s"rest in piece world... ")
       context.system.shutdown
   }
 
-  def beasyWorkerReceive: Receive = {
+  def beasyWorkerReceive(jobs: Queue[Job]): Receive = {
     case NewJob(job)                =>
       log.info(s"master got new job with id ${job.id} while worker IS busy")
-      queue = queue :+ job
-    case GimmeJob if queue.size > 0 =>
-      worker ! WorkerActor.NewJob(queue.head)
-      queue = queue.tail
+      context.become(beasyWorkerReceive(jobs :+ job))
+    case GimmeJob if jobs.size > 0 =>
+      worker ! WorkerActor.NewJob(jobs.head)
+      context.become(beasyWorkerReceive(jobs.tail))
     case GimmeJob                   =>
       worker ! WorkerActor.NoJobActually
-      context.unbecome()
+      context.become(freeWorkerReceive(Queue.empty[Job]))
   }
 
 }
