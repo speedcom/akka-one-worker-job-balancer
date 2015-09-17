@@ -18,6 +18,5 @@ There are some situations where we can't produce more workers because of differe
 * Thanks to delegation of job to Worker we get rid of well-known 'Error Kernel Pattern'.
 
 ### Caveats of current solution (what should be done better):
-1. Worker blocks current Thread while processing log-running task (Future to the rescue).
-- Asking for jobs should be an idempotent operation (messages can be lost).
+1. Asking for jobs should be an idempotent operation (messages can be lost).
 - Own implementation of Supervisor's hierarchy (?)

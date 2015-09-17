@@ -30,7 +30,7 @@ class WorkerActor extends Actor with ActorLogging {
 
   def processLongRunningJob(job: Job): Future[JobResult] = {
     log.info(s"Long running job = ${job.id}")
-    Thread.sleep(3000) // simulation of "heavy" time computaiton work - 1 sec is good enough for our purpose
+    Thread.sleep(3000) // simulation of "heavy" time computaiton work
     log.info(s"Finished job id = ${job.id}")
     Future.successful(SuccessJob)
   }
