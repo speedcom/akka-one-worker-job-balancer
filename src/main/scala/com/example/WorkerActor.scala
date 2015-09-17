@@ -1,30 +1,38 @@
 package com.example
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorRef, ActorLogging, Props}
+import scala.concurrent.Future
+import akka.pattern.pipe
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class WorkerActor extends Actor with ActorLogging {
   import WorkerActor._
 
-  var busy: Boolean = _
+  def receive = idleWorker
 
-  def receive = {
-    case NewJob(job) if busy == false =>
-      processedLongRunningJob(job)
-      sender ! MasterActor.GimmeJob
-    case NewJob(job) if busy == true  =>
-      log.warning("Sth goes wrong as hell...") // this should never happens
-    case NoJobActually                 =>
+  def idleWorker: Receive = {
+    case NewJob(job)   =>
+      processLongRunningJob(job).map(_ => SuccessedJob).pipeTo(self)
+      context.become(waitForRunningJob(sender()))
+    case NoJobActually =>
       log.info("Ok, but do not forget about me!")
       sender ! MasterActor.Ack
   }
 
-  // todo: make it returning Future[JobResult]
-  def processedLongRunningJob(job: Job) = {
+  def waitForRunningJob(source: ActorRef): Receive = {
+    case SuccessedJob =>
+      context.become(idleWorker)
+      source ! MasterActor.GimmeJob
+    case NewJob(job)  =>
+      log.warning("[Worker] I am busy...")
+      source ! MasterActor.WorkerBusy(job)
+  }
+
+  def processLongRunningJob(job: Job): Future[JobResult] = {
     log.info(s"Long running job = ${job.id}")
-    busy = true
-    Thread.sleep(1000) // simulation of "heavy" time computaiton work - 1 sec is good enough for our purpose
-    busy = false
+    Thread.sleep(3000) // simulation of "heavy" time computaiton work - 1 sec is good enough for our purpose
     log.info(s"Finished job id = ${job.id}")
+    Future.successful(SuccessJob)
   }
 
 }
@@ -37,4 +45,9 @@ object WorkerActor {
   sealed trait WorkerMsg
   case class NewJob(job: Job) extends WorkerMsg
   case object NoJobActually extends WorkerMsg
+  case object SuccessedJob extends WorkerMsg
+
+  sealed trait JobResult
+  case object SuccessJob extends JobResult
+  case object FailedJob extends JobResult
 }
